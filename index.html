@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitleTag">Hostel Management Cloud Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { 
+            --primary: #0047AB; 
+            --secondary: #FFD700; 
+            --admin-color: #d93025; 
+            --shepherd-color: #f9ab00; 
+            --rep-color: #188038; 
+            --commander-color: #4b0082; 
+            --whatsapp: #25D366; 
+            --glass: rgba(255, 255, 255, 0.95);
+            --shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            color: #333; 
+            background-color: #0047AB;
+            background: linear-gradient(rgba(0, 71, 171, 0.8), rgba(0, 71, 171, 0.8)), 
+                        url('my_background.jpg'); 
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }
+        
+        header { 
+            background: var(--primary); 
+            height: 85px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0 25px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 4px solid var(--secondary);
+        }
+
+        .brand-section { display: flex; align-items: center; gap: 12px; flex: 1; }
+
+        .pill-stroke {
+            border: 2.5px solid var(--secondary);
+            color: var(--secondary);
+            padding: 3px 14px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+        }
+
+        .title-section {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .login-section { flex: 1; display: flex; justify-content: flex-end; }
+
+        @media (max-width: 900px) { .title-section { display: none; } }
+
+        .container { display: flex; flex-direction: column; min-height: calc(100vh - 85px); padding: 20px; gap: 20px; }
+
+        @media (min-width: 768px) { .container { flex-direction: row; } }
+
+        #map { flex: 2; height: 400px !important; border-radius: 15px; box-shadow: var(--shadow); border: 5px solid white; }
+        .panel { flex: 1; padding: 25px; background: var(--glass); backdrop-filter: blur(10px); border-radius: 15px; box-shadow: var(--shadow); overflow-y: auto; }
+
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; display:flex; justify-content:center; align-items:center; }
+        .modal-content { background:white; padding:25px; border-radius:20px; width:90%; max-width:1100px; max-height:90vh; overflow-y:auto; border-top: 10px solid var(--primary); }
+        
+        .card { border: none; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: #fff; border-left: 5px solid var(--primary); }
+
+        .hidden { display: none; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 5px; font-weight: 700; transition: 0.3s; }
+        button:hover { filter: brightness(1.2); }
+        
+        /* Your Original Dashboard Box Styles */
+        .admin-box, .commander-box, .announcement-box { background: #f0f7ff; border: 1px solid #c2e0ff; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .announcement-box { background: #fff3e0; border-color: #ffe0b2; }
+
+        .section-title { color: var(--primary); border-bottom: 3px solid var(--secondary); padding-bottom: 5px; margin-bottom: 15px; font-weight: bold; display: inline-block; }
+        
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; min-width: 400px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background: #f4f4f4; color: var(--primary); }
+
+        .btn-edit { background: var(--shepherd-color); color: black; padding: 6px 10px; font-size: 11px; width: auto; }
+        .btn-delete { background: var(--admin-color); padding: 6px 10px; font-size: 11px; width: auto; color: white; }
+        .btn-excel { background: var(--rep-color); padding: 6px 10px; font-size: 11px; width: auto; color: white; }
+        .btn-whatsapp { background: var(--whatsapp); color: white; padding: 12px; border-radius: 8px; text-decoration: none; display: block; text-align: center; font-weight: bold; margin-top: 10px; font-size: 14px; }
+        
+        .input-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        @media (min-width: 480px) { .input-grid { grid-template-columns: 1fr 1fr 1fr; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand-section">
+        <img src="my_logo.jfif" 
+             style="height: 50px; width: 50px; background: white; border-radius: 50%; padding: 2px;" alt="COP Logo">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div class="pill-stroke">PENSA KNUST</div>
+            <div class="pill-stroke">OFF CAMPUS C</div>
+        </div>
+    </div>
+    <div class="title-section" id="appHeaderTitle">Hostel Locator Cloud Pro</div>
+    <div class="login-section">
+        <button onclick="showLogin()" style="width:auto; padding: 8px 16px; background:rgba(255,255,255,0.1); border: 2px solid var(--secondary); color: var(--secondary); font-size: 11px;">STAFF LOGIN</button>
+    </div>
+</header>
+
+<div class="container">
+    <div id="map"></div>
+    <div class="panel">
+        <div id="searchSection">
+            <h3 style="margin-top:0; color: var(--primary)">Find Your Hostel</h3>
+            <input id="searchInput" placeholder="Enter Hostel Name...">
+            <button onclick="searchHostel()">Search & Navigate</button>
+            <div id="hostelDisplay" style="margin-top: 20px;"></div>
+            <div id="studentForm" class="hidden" style="margin-top:20px; border-top:2px solid var(--secondary); padding-top:15px">
+                <h4 class="section-title">Student Registration</h4>
+                <p id="regTarget" style="font-weight:bold; color:var(--rep-color); margin-bottom:10px"></p>
+                <input id="stuName" placeholder="Full Name">
+                <input id="stuPhone" placeholder="Phone Number" type="tel">
+                <input id="stuRoom" placeholder="Room Number">
+                <button onclick="submitStudent()">Complete Registration</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loginModal" class="modal hidden">
+    <div class="modal-content" style="max-width:340px">
+        <h3 style="margin-top:0; color: var(--primary)">Staff Login</h3>
+        <input id="loginUser" placeholder="Username">
+        <input id="loginPass" type="password" placeholder="Password">
+        <button onclick="handleLogin()">Login</button>
+        <button onclick="closeModals()" style="background:#666; margin-top:10px">Cancel</button>
+    </div>
+</div>
+
+<div id="dashboardModal" class="modal hidden">
+    <div class="modal-content">
+        <div id="dashboardHeader"></div>
+        <div id="announcementSection"></div>
+        <div id="commanderTools" class="hidden"></div>
+        <div id="adminTools" class="hidden"></div> 
+        <div id="dashboardData"></div>
+        <button onclick="closeModals()" style="background:#666; margin-top:20px">Close Panel</button>
+    </div>
+</div>
+
+<script>
+/* ================= FIREBASE CONFIG ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBTnhAApirfCCroD510cMu8LzQarcgoKiA",
+  authDomain: "hostel-cloud-system.firebaseapp.com",
+  databaseURL: "https://hostel-cloud-system-default-rtdb.firebaseio.com",
+  projectId: "hostel-cloud-system",
+  storageBucket: "hostel-cloud-system.firebasestorage.app",
+  messagingSenderId: "106102368882",
+  appId: "1:106102368882:web:c678b01a2591384308b0eb"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let hostels = [];
+let staffUsers = [{ id: "commander", pass: "boss123", role: "commander", name: "General Commander" }];
+let appSettings = { title: "Hostel Locator Cloud Pro" };
+let currentUser, activeHostelIndex, map, dirService, dirRenderer;
+
+db.ref('/').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if(data) {
+        hostels = data.hostels || [];
+        appSettings = data.appSettings || { title: "Hostel Locator Cloud Pro" };
+        let cloudUsers = data.staffUsers || [];
+        if(!cloudUsers.some(u => u.role === 'commander')) {
+            cloudUsers.push({ id: "commander", pass: "boss123", role: "commander", name: "General Commander" });
+        }
+        staffUsers = cloudUsers;
+        updateBranding();
+        if(map) refreshMarkers();
+    } else { saveData(); }
+});
+
+function saveData() { db.ref('/').set({ hostels, staffUsers, appSettings }); }
+function updateBranding() {
+    document.getElementById('appHeaderTitle').innerText = appSettings.title;
+    document.getElementById('pageTitleTag').innerText = appSettings.title;
+}
+
+function initMap(){
+    map = new google.maps.Map(document.getElementById("map"),{ 
+        center: {lat:6.6706, lng:-1.563}, 
+        zoom: 16,
+        disableDefaultUI: false,
+        zoomControl: true
+    });
+    dirService = new google.maps.DirectionsService();
+    dirRenderer = new google.maps.DirectionsRenderer({ map });
+    hostels.forEach((h, i) => {
+        const marker = new google.maps.Marker({ position: {lat: parseFloat(h.lat), lng: parseFloat(h.lng)}, map, title: h.name });
+        marker.addListener("click", () => { activeHostelIndex = i; displayHostel(h); });
+    });
+}
+
+function searchHostel(){
+    const q = document.getElementById("searchInput").value.toLowerCase().trim();
+    const idx = hostels.findIndex(x => x.name.toLowerCase().includes(q));
+    if(idx === -1) return alert("Not found.");
+    activeHostelIndex = idx;
+    displayHostel(hostels[idx]);
+    navigator.geolocation.getCurrentPosition(pos => {
+        dirService.route({
+            origin: {lat: pos.coords.latitude, lng: pos.coords.longitude},
+            destination: {lat: parseFloat(hostels[idx].lat), lng: parseFloat(hostels[idx].lng)},
+            travelMode: "WALKING"
+        }, (res, status) => { if(status === "OK") dirRenderer.setDirections(res); });
+    });
+}
+
+function displayHostel(h) {
+    const waMessage = encodeURIComponent(`Hello ${h.rep.name}, I want to be part of the family at ${h.name}.`);
+    const cleanPhone = h.rep.phone.replace(/\s+/g, '').replace('+', '');
+    document.getElementById("hostelDisplay").innerHTML = `
+        <div class="card">
+            <h4 style="margin-top:0; color:var(--primary)">${h.name}</h4>
+            <p><b>Rep:</b> ${h.rep.name}<br><b>Phone:</b> ${h.rep.phone}</p>
+            <p><b>Room:</b> ${h.rep.room}</p>
+            <a href="https://wa.me/${cleanPhone}?text=${waMessage}" target="_blank" class="btn-whatsapp">💬 Message Rep on WhatsApp</a>
+        </div>`;
+    document.getElementById("regTarget").innerText = "Registering for: " + h.name;
+    document.getElementById("studentForm").classList.remove("hidden");
+    document.getElementById("studentForm").scrollIntoView({ behavior: 'smooth' });
+}
+
+function submitStudent() {
+    const n = document.getElementById("stuName").value;
+    const p = document.getElementById("stuPhone").value;
+    const r = document.getElementById("stuRoom").value;
+    if(!n || !p || !r) return alert("Fill all fields");
+    if(!hostels[activeHostelIndex].students) hostels[activeHostelIndex].students = [];
+    hostels[activeHostelIndex].students.push({ name: n, phone: p, room: r, date: new Date().toLocaleDateString() });
+    saveData(); alert("Registration Successful!"); location.reload();
+}
+
+function renderAnnouncementUI(container) {
+    let targetGroup = "";
+    if(currentUser.role === 'commander') targetGroup = "All Admins";
+    else if(currentUser.role === 'admin') targetGroup = "Your Shepherds";
+    else if(currentUser.role === 'shepherd') targetGroup = "Your Hostel Reps";
+    else if(currentUser.role === 'rep') targetGroup = "Your Students";
+
+    container.innerHTML = `
+        <div class="announcement-box">
+            <h4 style="margin:0 0 10px 0; color:#e65100">📢 Announcement</h4>
+            <p style="font-size:12px; margin-bottom:10px">Send SMS to: <b>${targetGroup}</b></p>
+            <textarea id="announcementMsg" placeholder="Type message here..." rows="2" style="font-family:inherit"></textarea>
+            <button onclick="sendAnnouncement()" style="background:#ef6c00">Send SMS Announcement</button>
+        </div>`;
+}
+
+function sendAnnouncement() {
+    const msg = document.getElementById('announcementMsg').value;
+    if(!msg) return alert("Please type a message");
+    let phones = [];
+    if(currentUser.role === 'commander') phones = staffUsers.filter(u => u.role === 'admin' && u.phone).map(u => u.phone);
+    else if(currentUser.role === 'admin') phones = staffUsers.filter(u => u.role === 'shepherd' && u.creatorID === currentUser.id && u.phone).map(u => u.phone);
+    else if(currentUser.role === 'shepherd') phones = hostels.filter(h => h.shepherdID === currentUser.id).map(h => h.rep.phone);
+    else if(currentUser.role === 'rep') {
+        const hostel = hostels.find(h => h.name === currentUser.hostel);
+        if(hostel && hostel.students) phones = hostel.students.map(s => s.phone);
+    }
+    if(phones.length === 0) return alert("No contact numbers found.");
+    window.location.href = `sms:${phones.join(',')}?body=${encodeURIComponent(msg)}`;
+}
+
+function openDashboard() {
+    document.getElementById('dashboardModal').classList.remove('hidden');
+    const cTools = document.getElementById('commanderTools');
+    const aTools = document.getElementById('adminTools');
+    const dataArea = document.getElementById('dashboardData');
+    const announceArea = document.getElementById('announcementSection');
+    document.getElementById('dashboardHeader').innerHTML = `<h2 class="section-title">Staff Panel: ${currentUser.name}</h2>`;
+    dataArea.innerHTML = ""; cTools.classList.add('hidden'); aTools.classList.add('hidden'); renderAnnouncementUI(announceArea);
+    if(currentUser.role === 'commander') { cTools.classList.remove('hidden'); renderCommanderUI(cTools); }
+    else if(currentUser.role === 'admin') { aTools.classList.remove('hidden'); renderAdminUI(aTools); hostels.filter(h => h.creatorID === currentUser.id).forEach((h, i) => renderHostelCard(h, hostels.indexOf(h), dataArea, 'admin')); }
+    else if(currentUser.role === 'shepherd') { hostels.forEach((h, i) => { if(h.shepherdID === currentUser.id) renderHostelCard(h, i, dataArea, 'shepherd'); }); }
+    else { const idx = hostels.findIndex(h => h.name === currentUser.hostel); if(idx !== -1) renderHostelCard(hostels[idx], idx, dataArea, 'rep'); }
+}
+
+function renderCommanderUI(container) {
+    const admins = staffUsers.filter(u => u.role === 'admin');
+    let rows = admins.map(a => `<tr><td>${a.name}</td><td>${a.id}</td><td>${a.pass}</td><td><button class="btn-edit" onclick="editUserDetails('${a.id}')">Edit</button> <button class="btn-delete" onclick="deleteUser('${a.id}')">Remove</button></td></tr>`).join('');
+    container.innerHTML = `
+        <div class="commander-box" style="border-color:#333; background:#f9f9f9">
+            <h4>System Branding</h4>
+            <input id="newAppTitle" placeholder="Enter App Name" value="${appSettings.title}">
+            <button onclick="updateTitle()" style="background:#333">Update App Title</button>
+        </div>
+        <div class="commander-box">
+            <h4>Appoint System Admins</h4>
+            <div class="input-grid"><input id="admName" placeholder="Full Name"><input id="admUser" placeholder="Login User"><input id="admPass" placeholder="Login Pass"><input id="admPhone" placeholder="Phone Number"></div>
+            <button onclick="addAdmin()" style="background:var(--commander-color); margin-top:10px">Add Admin</button>
+            <div class="table-wrap"><table><tr><th>Name</th><th>User</th><th>Pass</th><th>Actions</th></tr>${rows}</table></div>
+        </div>`;
+}
+
+function updateTitle() { appSettings.title = document.getElementById('newAppTitle').value; saveData(); alert("Title Updated!"); }
+function addAdmin() {
+    const n = document.getElementById('admName').value.trim(); const u = document.getElementById('admUser').value.trim(); const p = document.getElementById('admPass').value.trim(); const ph = document.getElementById('admPhone').value.trim();
+    if(!n || !u || !p) return alert("Fill all");
+    staffUsers.push({ id: u, pass: p, role: 'admin', name: n, phone: ph });
+    saveData(); openDashboard();
+}
+
+function renderAdminUI(container) {
+    const myShepherds = staffUsers.filter(u => u.role === 'shepherd' && u.creatorID === currentUser.id);
+    const myReps = staffUsers.filter(u => u.role === 'rep' && u.creatorID === currentUser.id);
+    let shepOpts = myShepherds.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    let shepRows = myShepherds.map(s => `<tr><td>${s.name}</td><td>${s.id}</td><td>${s.pass}</td><td><button class="btn-edit" onclick="editUserDetails('${s.id}')">Edit</button> <button class="btn-delete" onclick="deleteUser('${s.id}')">X</button></td></tr>`).join('');
+    let repRows = myReps.map(r => `<tr><td>${r.name}</td><td>${r.id}</td><td>${r.pass}</td><td><button class="btn-edit" onclick="editUserDetails('${r.id}')">Edit</button> <button class="btn-delete" onclick="deleteUser('${r.id}')">X</button></td></tr>`).join('');
+    container.innerHTML = `
+        <div class="admin-box">
+            <h4>Area Shepherds</h4>
+            <div class="input-grid"><input id="asName" placeholder="Name"><input id="asUser" placeholder="User"><input id="asPass" placeholder="Pass"><input id="asPhone" placeholder="Phone"></div>
+            <button onclick="addShepherd()">Save Shepherd</button>
+            <div class="table-wrap"><table><tr><th>Name</th><th>User</th><th>Pass</th><th>Actions</th></tr>${shepRows}</table></div>
+        </div>
+        <div class="admin-box" style="border-color:var(--rep-color)">
+            <h4>Register Hostel & Rep</h4>
+            <button onclick="getGPS()" style="background:#673ab7; margin-bottom:10px">📍 Get Location GPS</button>
+            <div class="input-grid"><input id="nhName" placeholder="Hostel Name"><select id="nhShep"><option value="">Select Shepherd</option>${shepOpts}</select><input id="nhLat" placeholder="Lat"><input id="nhLng" placeholder="Lng"><input id="nrName" placeholder="Rep Name"><input id="nrPhone" placeholder="Rep Phone"><input id="nrRoom" placeholder="Room"><input id="nrUser" placeholder="Rep User Login"><input id="nrPass" placeholder="Rep Pass Login"></div>
+            <button onclick="adminFinalize()" style="background:var(--rep-color)">Save Hostel & Rep</button>
+            <h4 style="margin-top:20px">Hostel Rep Logins</h4>
+            <div class="table-wrap"><table><tr><th>Name</th><th>User</th><th>Pass</th><th>Actions</th></tr>${repRows}</table></div>
+        </div>`;
+}
+
+function addShepherd() {
+    const n = document.getElementById('asName').value; const u = document.getElementById('asUser').value; const p = document.getElementById('asPass').value; const ph = document.getElementById('asPhone').value;
+    if(!n || !u || !p) return alert("Fill all fields");
+    staffUsers.push({ id: u, pass: p, role: 'shepherd', name: n, creatorID: currentUser.id, phone: ph });
+    saveData(); openDashboard();
+}
+
+function adminFinalize() {
+    const name = document.getElementById('nhName').value; const lat = document.getElementById('nhLat').value; const lng = document.getElementById('nhLng').value;
+    if(!name || !lat || !lng) return alert("Fill all fields and get GPS");
+    hostels.push({ name, lat, lng, shepherdID: document.getElementById('nhShep').value, creatorID: currentUser.id, rep: { name: document.getElementById('nrName').value, phone: document.getElementById('nrPhone').value, room: document.getElementById('nrRoom').value }, students: [] });
+    staffUsers.push({ id: document.getElementById('nrUser').value, pass: document.getElementById('nrPass').value, role: 'rep', name: document.getElementById('nrName').value, hostel: name, creatorID: currentUser.id });
+    saveData(); location.reload();
+}
+
+function deleteUser(id) {
+    const user = staffUsers.find(u => u.id === id); if (!user) return;
+    const choice = confirm(`DELETION OPTIONS for ${user.name}:\n\nClick [OK] to delete ONLY the user.\nClick [Cancel] to delete the user AND ALL data.`);
+    if (choice) { staffUsers = staffUsers.filter(u => u.id !== id); } else { if (confirm("Are you absolutely sure?")) { hostels = hostels.filter(h => h.creatorID !== id && h.shepherdID !== id); staffUsers = staffUsers.filter(u => u.id !== id && u.creatorID !== id); } else { return; } }
+    saveData(); openDashboard(); refreshMarkers();
+}
+
+function deleteHostel(i) {
+    const hostelName = hostels[i].name;
+    if(confirm(`Delete ${hostelName}?`)) { staffUsers = staffUsers.filter(u => u.hostel !== hostelName); hostels.splice(i, 1); saveData(); openDashboard(); refreshMarkers(); }
+}
+
+function editUserDetails(id) {
+    const user = staffUsers.find(u => u.id === id);
+    const nN = prompt("Name:", user.name); const nU = prompt("Username:", user.id); const nP = prompt("Password:", user.pass);
+    if(nN && nU && nP) { user.name = nN; user.id = nU; user.pass = nP; hostels.forEach(h => { if(h.creatorID === id) h.creatorID = nU; if(h.shepherdID === id) h.shepherdID = nU; }); staffUsers.forEach(u => { if(u.creatorID === id) u.creatorID = nU; }); saveData(); openDashboard(); }
+}
+
+function getGPS() { navigator.geolocation.getCurrentPosition(p => { document.getElementById('nhLat').value = p.coords.latitude.toFixed(6); document.getElementById('nhLng').value = p.coords.longitude.toFixed(6); }); }
+function renderHostelCard(h, index, container, role) {
+    const div = document.createElement('div'); div.className = "card";
+    div.innerHTML = `<div style="display:flex; justify-content:space-between"><strong>${h.name}</strong><span>👥 ${h.students ? h.students.length : 0}</span></div><div style="display:flex; gap:8px; margin-top:10px"><button class="btn-excel" onclick="exportToExcel(${index})">Excel</button><button onclick="viewStudents(${index})" style="background:#444">Students</button>${role === 'admin' ? `<button class="btn-delete" onclick="deleteHostel(${index})">Delete</button>` : ''}</div>`;
+    container.appendChild(div);
+}
+function viewStudents(idx) {
+    const h = hostels[idx]; let html = `<h4 class="section-title">${h.name}</h4><div class="table-wrap"><table><tr><th>Name</th><th>Phone</th><th>Room</th><th>Action</th></tr>`;
+    if(h.students) h.students.forEach((s, i) => html += `<tr><td>${s.name}</td><td>${s.phone}</td><td>${s.room}</td><td><button class="btn-delete" onclick="removeStudent(${idx},${i})">X</button></td></tr>`);
+    document.getElementById('dashboardData').innerHTML = html + `</table></div><button onclick="openDashboard()" style="margin-top:15px">Back to Panel</button>`;
+}
+function removeStudent(hi, si) { if(confirm("Remove?")) { hostels[hi].students.splice(si, 1); saveData(); viewStudents(hi); } }
+function exportToExcel(idx) { const h = hostels[idx]; if(!h.students || h.students.length === 0) return alert("No data"); const ws = XLSX.utils.json_to_sheet(h.students); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, `${h.name}.xlsx`); }
+function handleLogin() { const u = document.getElementById('loginUser').value.trim(); const p = document.getElementById('loginPass').value.trim(); const user = staffUsers.find(x => x.id === u && x.pass === p); if(user) { currentUser = user; closeModals(); openDashboard(); } else { alert("Login Denied"); } }
+function showLogin() { document.getElementById('loginModal').classList.remove('hidden'); }
+function closeModals() { document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); }
+function refreshMarkers() { initMap(); }
+</script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBTClonQx_hXVDN-cYp6EBxq5ZIEpmNdA4&callback=initMap"></script>
+</body>
+</html>
