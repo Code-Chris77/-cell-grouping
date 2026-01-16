@@ -287,16 +287,37 @@ function renderAnnouncementUI(container) {
 function sendAnnouncement() {
     const msg = document.getElementById('announcementMsg').value;
     if(!msg) return alert("Please type a message");
+    
     let phones = [];
-    if(currentUser.role === 'commander') phones = staffUsers.filter(u => u.role === 'admin' && u.phone).map(u => u.phone);
-    else if(currentUser.role === 'admin') phones = staffUsers.filter(u => u.role === 'shepherd' && u.creatorID === currentUser.id && u.phone).map(u => u.phone);
-    else if(currentUser.role === 'shepherd') phones = hostels.filter(h => h.shepherdID === currentUser.id).map(h => h.rep.phone);
-    else if(currentUser.role === 'rep') {
+    
+    // Logic to gather phones remains the same
+    if(currentUser.role === 'commander') {
+        phones = staffUsers.filter(u => u.role === 'admin' && u.phone).map(u => u.phone);
+    } else if(currentUser.role === 'admin') {
+        phones = staffUsers.filter(u => u.role === 'shepherd' && u.creatorID === currentUser.id && u.phone).map(u => u.phone);
+    } else if(currentUser.role === 'shepherd') {
+        phones = hostels.filter(h => h.shepherdID === currentUser.id).map(h => h.rep.phone);
+    } else if(currentUser.role === 'rep') {
         const hostel = hostels.find(h => h.name === currentUser.hostel);
         if(hostel && hostel.students) phones = hostel.students.map(s => s.phone);
     }
+
     if(phones.length === 0) return alert("No contact numbers found.");
-    window.location.href = `sms:${phones.join(',')}?body=${encodeURIComponent(msg)}`;
+
+    
+    const cleanPhones = phones.map(p => p.trim());
+    
+    // Use ';' for Android/Windows and '&' or ',' for iOS
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const separator = isIos ? ',' : ';'; 
+    
+    // Create the final link
+    const finalNumbers = cleanPhones.join(separator);
+    const smsLink = isIos 
+        ? `sms:${finalNumbers}&body=${encodeURIComponent(msg)}` 
+        : `sms:${finalNumbers}?body=${encodeURIComponent(msg)}`;
+
+    window.location.href = smsLink;
 }
 
 function openDashboard() {
@@ -369,11 +390,59 @@ function addShepherd() {
 }
 
 function adminFinalize() {
-    const name = document.getElementById('nhName').value; const lat = document.getElementById('nhLat').value; const lng = document.getElementById('nhLng').value;
-    if(!name || !lat || !lng) return alert("Fill all fields and get GPS");
-    hostels.push({ name, lat, lng, shepherdID: document.getElementById('nhShep').value, creatorID: currentUser.id, rep: { name: document.getElementById('nrName').value, phone: document.getElementById('nrPhone').value, room: document.getElementById('nrRoom').value }, students: [] });
-    staffUsers.push({ id: document.getElementById('nrUser').value, pass: document.getElementById('nrPass').value, role: 'rep', name: document.getElementById('nrName').value, hostel: name, creatorID: currentUser.id });
-    saveData(); location.reload();
+    // 1. Get Hostel & Shepherd Selection
+    const name = document.getElementById('nhName').value.trim();
+    const shep = document.getElementById('nhShep').value; // Gets the ID of the shepherd
+    const lat = document.getElementById('nhLat').value.trim();
+    const lng = document.getElementById('nhLng').value.trim();
+
+    // 2. Get Rep Details
+    const rName = document.getElementById('nrName').value.trim();
+    const rPhone = document.getElementById('nrPhone').value.trim();
+    const rUser = document.getElementById('nrUser').value.trim();
+    const rPass = document.getElementById('nrPass').value.trim();
+
+    // --- STRICT SHEPHERD VALIDATION ---
+    if (shep === "" || !shep) {
+        return alert("❌ REGISTRATION FAILED: You must assign an Area Shepherd to this hostel before saving.");
+    }
+
+    // --- OTHER FIELD VALIDATION ---
+    if (!name || !lat || !lng) {
+        return alert("❌ MISSING DATA: Please provide the Hostel Name and GPS Location.");
+    }
+
+    if (!rName || !rPhone || !rUser || !rPass) {
+        return alert("❌ REP DETAILS MISSING: You must provide all Hostel Rep details and login credentials.");
+    }
+
+    // 3. Save to Database (only runs if all checks above passed)
+    hostels.push({ 
+        name, 
+        lat, 
+        lng, 
+        shepherdID: shep, 
+        creatorID: currentUser.id, 
+        rep: { 
+            name: rName, 
+            phone: rPhone, 
+            room: document.getElementById('nrRoom').value.trim() 
+        }, 
+        students: [] 
+    });
+
+    staffUsers.push({ 
+        id: rUser, 
+        pass: rPass, 
+        role: 'rep', 
+        name: rName, 
+        hostel: name, 
+        creatorID: currentUser.id 
+    });
+
+    saveData(); 
+    alert("✅ Success: Hostel, Shepherd, and Rep linked successfully!"); 
+    location.reload();
 }
 
 function deleteUser(id) {
